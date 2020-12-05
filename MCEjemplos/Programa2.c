@@ -4,15 +4,23 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <unistd.h>
+
+
 #include "memoria.h"
 
-int main(void){
+int main(int argc, char *argv[]){
 
     key_t Clave;
     int ID;
     struct Memoria *ptr;
 
-    Clave = ftok(".",'x');
+    //Clave = ftok(".",'x');
+    printf("argv1 %s\n", argv[0]);
+    printf("argv1 %d\n", atoi(argv[1]));
+    printf("\n\n....espera un momento para ver el arbol\n");
+    sleep(10);
+    
+    Clave = ftok(argv[0], atoi(argv[1]));
     ID = shmget( Clave, sizeof(struct Memoria), 0666);
     
     if( Clave < 0 ){
@@ -31,10 +39,12 @@ int main(void){
 
     while( ptr->estado != LLENO )
         ;
+    ptr->resultado = ptr->operandoA + ptr->operandoB ;
     printf("Cliente: Leyendo datos.\n");
-    printf("Cliente: Los datos son %d, %d, %d, %d.\n", ptr->datos[0], ptr->datos[1], ptr->datos[2], ptr->datos[3]);
+    printf("Cliente: Los datos son %f, %f, %f\n", ptr->operandoA, ptr->operandoB, ptr->resultado);
 
     ptr->estado = RECIBIDO;
+    
     printf("Cliente: Enviando confirmacion de recibido.\n");
     shmdt( (void*) ptr );
     printf("Cliente: Liberando Memoria\n");

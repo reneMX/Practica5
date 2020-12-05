@@ -21,7 +21,7 @@ int main(int argc, char *argv[] )
     printf("Proceso 1: Id es %d\n", (int) getpid());
     Clave = ftok(".", 'x');
     ID    = shmget(Clave, sizeof(struct Memoria), IPC_CREAT | 0666);
-
+    
     if( ID < 0 )
     {
         printf("***ERROR!!, en shmget (Proceso 1***\n)");
@@ -30,7 +30,7 @@ int main(int argc, char *argv[] )
     printf("Proceso 1: Se utilizara memoria compartida, para almacenar 4 valores enteros\n");
 
     ptr = (struct Memoria *) shmat( ID, NULL, 0 );//El permiso es 
-    if( ((int) ptr ) == -1 )
+     if( ((int) ptr ) == -1 )
     {
         printf("***Proceso 1: ERROR!!, en shmat***\n");
         exit(1);

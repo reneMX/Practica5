@@ -4,7 +4,8 @@
 
 struct Memoria{
     int estado;
-    float operandoA;
-    float operandoB;
+    float operando_1;
+    float operando_2;
     float resultado;
+    char *mensaje_error;
 };
