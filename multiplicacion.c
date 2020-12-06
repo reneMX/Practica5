@@ -14,15 +14,12 @@ int main(int argc, char *argv[]){
     int ID;
     struct Memoria *ptr;
 
-    printf("\n\n\nPROCESO MULTIPLICACION\n");
-    printf("argv1 %s\n", argv[0]);
-    printf("argv1 %d\n", atoi(argv[1]));
-    printf("\n\n....espera un momento para ver el arbol\n");
-    sleep(10);
-    
-    
     Clave = ftok(argv[0], atoi(argv[1]) );
     ID = shmget(Clave, sizeof(struct Memoria), 0666 );
+
+    printf("\n\n\nPROCESO MULTIPLICACION\n");
+    printf("\n\n....espera un momento para ver el arbol\n");    
+    
 
     if(Clave < 0){
         ptr->mensaje_error = "***multi: error en shmget\n" ;
@@ -53,7 +50,7 @@ int main(int argc, char *argv[]){
     printf("multi: Liberando Memoria\n");
     printf("multi: Terminado\n");    
 
-
+    sleep(5);   
     
 return 0;
 }//fin main

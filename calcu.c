@@ -9,29 +9,81 @@
 
 
 
-
 char verificaOperador(char *ope);
+/*....char verificaoperadOperador(char *);...
+    *Con esta funcion obtenemos el operador
+    Return
+    *Esta funcion retorna  el operador, solo en caso de encontrarlo
+    *O en caso contrario, regresa la letra 'e', que significara Error, y operador invalido
+*/
+
 void obtenOperandos(char *ando);
+/*....void obtenOperando(char *);....
+    *Con este metodo obtenemos, los operandos
+    los cuales se guardan en un array de tamanio 2
+    De tipo float
+    Se llama float reales[2]
+    Y esta declarado como global
+*/
+
 void crearMemoriCompartida();
-void creaProcesoHijo(char operador);
-void sustituyeProceso(char operador);
+/*....void crearMemoriCompartida();....
+    *Con este metodo creamos la memoria compartida para la comunicacion del calcuPadre-calcuExperto
+    aqui inicializamos la Clave, mediante ftok, a la cual
+    le pasamos como parametros "." y 'd', el cual sera enviado los procesos expertos posteriormente
+    utilizaamos shmget,shmat
+    y le pasamos los valores de cada operador, asi como el estado en NOLISTO
+*/
 
-void convierteTipoOperando(float);
-void duplicaProceso(char operador);
-void muestraResultado(char operador);
+void creaProcesoHijo();
+/*....void creaProcesoHijo();....
+    *Con este metodo, creamos los procesos hijos necesarios, y en dependencia del operador ingresado
+    tenemos 2 casos.
+    Caso 1: Cuando el operador es para +,-,x,/. Creamos 1 solo proceso hijo.
+    Caso 2: Cuando el operador es #. Creamos 4 procesos hijos. Esto se hace mediante:
+        > Un for, con 4 iteraciones, dentro de las cuales, hacemos 1 llamada a fork
+        > y mediante una condicion, creamos solo 4 hijos para el padre proceso "calcu"
+        > despues de esa creacion, asignamos un valor distinto, para identificar cada proceso hijo.
+*/
 
+void sustituyeProceso();
+/*....
+void sustituyeProceso();....
+    *Con este metodo, haceemos la sustitucion, de caad proceso, 
+    pero se condiciona a 2 casos.
+    Caso 1: Cuando val = 10, quiere decir que el proceso padre, tiene 1 solo hijo
+        > y se susutituye 1 solo proceso
+    Caso 2: Aqui adentro, hay 4 casos que se tienen que realizar por separado, pues se hacen en simultaneo
+        > aqui se evalua en una structura de seleccion switch, donde:
+        > val = 1 --> es igual al proceso suma
+        > val = 2 --> es igual al proceso resta
+        > val = 3 --> es igual al proceso multi
+        > val = 4 --> es igual al proceso div
+*/
 
-//char *operandos = NULL;
-char *const  datos_clave[] = {".","100", NULL};
-//char *const  arvg2_resta[] = {"resta", "Sustituido", "Restar", NULL} ;
-//char *const  arvg2_multi[] = {"Multi", "Sustituido", "Multiplicar", NULL} ;
-//char *const  arvg2_div[]   = {"Division", "Sustituido", "Dividir", NULL} ;
+void sustituye();
+/*....
+void sustituyeProceso();....
+    *Con este metodo, solo sustituimos los procesos para el caso 1,
+    donde se crea 1 solo hijo del proceso padre "calcu"
+*/
+
+void muestraResultado();
+/*....
+void muestraResultado();....
+    *Con este metodo, mostramos los resultados que nos dio 1 o 4 procesos 
+        expertos, y que dejaron en la memoria compartia
+*/
+
+//variables para expresion
 float operandos[2];
+char operador;
 
 //variables memoria compartida
 key_t Clave;
 int ID;
 struct Memoria *ptr;
+char *const  datos_clave[] = {".","100", NULL};
 
 //variables Fork
 pid_t pid;
@@ -41,12 +93,11 @@ int main(int argc, char *argv[]){
 
     char *ando;
     char *ope;
-    char operador;
-    
+        
     /*Validamos que se ingrese la Operacion*/
     if( argc != 2 )
     {
-        printf("Error, en los argumentos al momento de ejcutar el programa, Deben de ser 2\n.....Ejemplo-> ./nombreArchivo operacion\n");
+        printf("calcu: Error, en los argumentos al momento de ejcutar el programa, Deben de ser 2\n.....Ejemplo-> ./nombreArchivo operacion\n");
     } 
 
     ope = (char*) malloc( strlen(*argv) + 1 );//Asignamos memoria a ope
@@ -55,157 +106,137 @@ int main(int argc, char *argv[]){
     ando = (char*) malloc( strlen(*argv) + 1 );//Aisgnamos memoria a ope
     strcpy( ando, argv[1]);//copiamos el argv[1] en ope
 
-/*VALIDAR Y OBTENER OPERADOR*/
+    /*VALIDAR Y OBTENER OPERADOR*/
+    operador = verificaOperador(ope);
 
-        /* 
-            char verificaoperadOperador(char *);
-            
-            *Con esta funcion obtenemos el operador
-            Return
-            *Esta funcion retorna  el operador, solo en caso de encontrarlo
-            *O en caso contrario, regresa la letra 'e', que significara Error, y operador invalido
-        */
-        operador = verificaOperador(ope);
-
-        if( operador != 'e')//evaluamos lo que devuelve la funcion
-        {
-            /*
-                void obtenOperando(char *);
-                *Con este metodo obtenemos, los operandos
-                    los cuales se guardan en un array de tamanio 2
-                    De tipo float
-                    Se llama float reales[2]
-                    Y esta declarado como global
-            */
+    if( operador != 'e')//evaluamos lo que devuelve la funcion
+    {            
             obtenOperandos(ope);
-            printf("SE IMPRIMEN VALORES DE OPERANDOS\n %f, %f\n", operandos[0], operandos[1]);
-              
-             
-
-//......INICO PARA CREAR MEMORIA COMPARTIDA
+            printf("calcu: SE IMPRIMEN VALORES DE OPERANDOS\n %f, %f\n", operandos[0], operandos[1]);         
+    //......INICO PARA CREAR MEMORIA COMPARTIDA
             crearMemoriCompartida();
-//............COMENSAMOS CON FORK
+    //............COMENSAMOS CON FORK
             sleep(5);
-            creaProcesoHijo(operador);
-            sleep(15);
+            creaProcesoHijo();
+    //.....EN ESTE MOMENTO HACEMOS LA SUSTITUCION Y PASAMOS CLAVE DE MEMORIA COMPARTIDA
+            sleep(5);   
+            sustituyeProceso();
+            sleep(10);
+            ptr->estado = LLENO;         
+                
 
-//.....EN ESTE MOMENTO HACEMOS LA SUSTITUCION Y PASAMOS CLAVE DE MEMORIA COMPARTIDA
-
-            //printf("soy el %d,mi pid es %d  y  mi val= %d\n",getpid(), pid, val);  
-            sustituyeProceso(operador);
-
-/*
             while( ptr->estado != RECIBIDO);
-            sleep(5);  
-
-            printf("calcu: El resultado es %f\n",ptr->resultado);    
-    
-//..... AQUI SE LIBERA MEMORIA.H
+            
+    //......MOSTRAMOS RESULTADOS            
+            //sleep(10);    
+            muestraResultado(operador);    
+    //..... AQUI SE LIBERA MEMORIA.H
             printf("calcu: Se a entregado la informacion...\n");
             shmdt( (void *)ptr );
             shmctl( ID, IPC_RMID, NULL);
             printf("calcu: Liberando memoria compartida\n");
-            printf("calcu: Terminado\n");
-*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-///duplicaProceso( operador );
-    // muestraResultado(operador);
-//printf("Mi pid vale %d,  Soy el proceso %d, mi padre es el %d y mi val %d\n",pid,  getpid(), getppid(), val);
-            
-            
-            
-
-            
-        }//fin if operador
-
-        sleep(10);
-        //while(1);
+            printf("calcu: Terminado\n");     
+            sleep(5);
+    }//fin if operador
         free(ope);
         free(ando);
     return 0; 
 }//fin main
 
-
-void sustituyeProceso(char operador)
+void muestraResultado()
 {
-    if( val == 10 && pid == 0 )
+    switch(operador)
     {
-        switch( operador )
+        case '+':
+            printf("calcu: El resultado de la suma de %.3f+%.3f = %.3f\n", ptr->operando_1, ptr->operando_2, ptr->resultado);
+        break;
+
+        case '-':
+            printf("calcu: El resultado de la resta de %.3f+%.3f = %.3f\n", ptr->operando_1, ptr->operando_2, ptr->resultado);
+        break;
+
+        case 'x':
+            printf("calcu: El resultado de la multiplicacion de %.3f+%.3f = %.3f\n", ptr->operando_1, ptr->operando_2, ptr->resultado);
+        break;
+
+        case '/':
+            printf("calcu: El resultado de la division de %.3f+%.3f = %.3f\n", ptr->operando_1, ptr->operando_2, ptr->resultado);
+        break;
+    }//fin switch
+}//fin muestraResultado()
+
+void sustituye()
+{
+    switch( operador )
         {
             case '+':
+                printf("calcu: Haciendo susutitucion por proceso suma\n");
                 execv("./suma", datos_clave);    
-                while( ptr->estado != RECIBIDO);
-                printf("calcu: El resultado es %f\n",ptr->resultado);
             break;
 
             case '-':
+                printf("calcu: Haciendo susutitucion por proceso rest\n");
                 execv("./resta", datos_clave);    
             break;
 
             case 'x':
+                printf("calcu: Haciendo susutitucion por proceso multi\n");
                 execv("./multi", datos_clave);    
             break;
 
             case '/':
+                printf("calcu: Haciendo susutitucion por proceso div\n");
                 execv("./div", datos_clave);    
             break;
         } //fin switch operador  
+}//fin sustituye
+
+void sustituyeProceso()
+{
+    if( val == 10 && pid == 0 )
+    {
+        sustituye();
     }//fin if val = 10....
     
     if( val < 10 && val > 0 && pid == 0)
-    {   
+    {  // printf("sleep ates sqitch\n");
         sleep(5);
         switch( val )
         {
             case 1:
                // printf("Soy el %d mi val = %d mi pid es %d\n", getpid(), val, pid);
+                //printf("calcu: CASO 1, esperamos (5s)\n");
+                //printf("sleep ates execv(suma)\n");
+                sleep(5);
                 execv("./suma", datos_clave);
-                while( ptr->estado != RECIBIDO);
-                printf("calcu: El resultado es %f\n",ptr->resultado);    
+                //printf("\n");  
             break;
 
             case 2:
-                printf("\n");
-                //printf("Soy el %d mi val = %d mi pid es %d\n", getpid(), val, pid);
-                /*execv("./resta", datos_clave);    
-                while( ptr->estado != RECIBIDO);
-                printf("calcu: El resultado es %f\n",ptr->resultado);*/
+                
+                //printf("entra caso 2\n");
+                //printf("calcu: CASO 2, esperamos (5s)\n");
+                //printf("sleep ates execv(resta)\n");
+                sleep(5);
+                execv("./resta", datos_clave);
             break;
 
             case 3:
-                printf("\n");
-               // printf("Soy el %d mi val = %d mi pid es %d\n", getpid(), val, pid);
-                /*execv("./multi", datos_clave);    
-                while( ptr->estado != RECIBIDO);
-                printf("calcu: El resultado es %f\n",ptr->resultado);*/
+                //printf("calcu: CASO 3, esperamos (5s)\n");
+                sleep(5);
+                execv("./multi", datos_clave);
             break;
 
             case 4:
-                printf("\n");
-                //printf("Soy el %d mi val = %d mi pid es %d\n", getpid(), val, pid);
-                /*execv("./div", datos_clave);    
-                while( ptr->estado != RECIBIDO);
-                printf("calcu: El resultado es %f\n",ptr->resultado);*/
+                //printf("calcu: CASO 4, esperamos (5s)\n");
+                sleep(5);
+                execv("./div", datos_clave);
             break;
         }//fin switch
-        
     }//fin if val == 1,  val ==2 .....,    
 }// fin sustituyeProceso
 
-void creaProcesoHijo(char operador)
+void creaProcesoHijo()
 {
     val = 0;
     printf("\ncalcu: CREANDO PROCESO O PROCESOS HIJO\n");
@@ -258,224 +289,32 @@ void creaProcesoHijo(char operador)
 
 void crearMemoriCompartida()
 {
-     printf("Calcu: Id es %d\n", (int) getpid());
-            Clave = ftok(".", 'd');
-            ID    = shmget(Clave, sizeof(struct Memoria), IPC_CREAT | 0666);
+    printf("Calcu: Id es %d\n", (int) getpid());
+        Clave = ftok(".", 'd');
+        ID    = shmget(Clave, sizeof(struct Memoria), IPC_CREAT | 0666);
 
-            if( ID < 0 )
-            {
-                printf("***ERROR!!, en shmget (Calcu ***\n)");
-                exit(1);
-            }
-            printf("Calcu: Se utilizara memoria compartida, para almacenar 4 valores enteros\n");
+        if( ID < 0 )
+        {
+            printf("***ERROR!!, en shmget (Calcu ***\n)");
+            exit(1);
+        }
+        printf("Calcu: Se utilizara memoria compartida\n");
 
-            ptr = (struct Memoria *) shmat( ID, NULL, 0 );//El permiso es 
-            if( ((int) ptr ) == -1 )
-            {
-                printf("***Calcu: ERROR!!, en shmat***\n");
-                exit(1);
-            }
-            printf("Calcu: Usando la memoria compartida...\n");
+        ptr = (struct Memoria *) shmat( ID, NULL, 0 );//El permiso es 
+        if( ((int) ptr ) == -1 )
+        {
+            printf("***Calcu: ERROR!!, en shmat***\n");
+            exit(1);
+        }
+        printf("Calcu: Usando la memoria compartida...\n");
 
-            ptr->estado   = NOLISTO;
-            ptr->operando_1 = operandos[0];
-            ptr->operando_2 = operandos[1] ;
+        ptr->estado   = NOLISTO;
+        ptr->operando_1 = operandos[0];
+        ptr->operando_2 = operandos[1] ;
 
-            printf("Calcu: Los datos colocados en la memoria compartida son %f, %f\n", ptr->operando_1, ptr->operando_2);
-            ptr->estado = LLENO;
-
-            
+        printf("Calcu: Los datos colocados en la memoria compartida son %f, %f\n", ptr->operando_1, ptr->operando_2);
+        // ptr->estado = LLENO;            
 }// fin creaMemoriaCompartida()
-
-void muestraResultado(char operador)
-{
-    switch( operador )
-    {
-        case '+':
-            printf("Resultado: %f\n", ptr->resultado);
-        break;
-        case '-':
-            printf("Resultado: %f\n", ptr->resultado);
-        break;
-        case 'x':
-            printf("Resultado: %f\n", ptr->resultado);
-        break;
-        
-
-    }
-
-}//fin muestraResultado
-
-/*
-void duplicaProceso(char operador)
-{    
-    sleep(5);
-    switch( operador )
-    {   
-        case '+':
-                pid = fork();
-                if( pid == 0 )
-                {
-                    printf("Nuevo proceso creado\n");
-                    sleep(5);
-                    printf("Se esta generando un espacio de memoria compartida para llamar a funcion experta\n\n");
-
-
-                    Clave = ftok("." , 'd');
-                    ID = shmget( Clave, sizeof(struct Memoria), IPC_CREAT | 0666 ); 
-                    if( ID < 0)
-                    {
-                        printf("***ERROR!!, en shmget (Proceso 1***\n)");
-                        exit(1);
-                    }
-
-                    ptr = (struct Memoria *) shmat( ID, NULL, 0 );//El permiso es 
-                    if( ((int) ptr) == -1 )
-                    {
-                        printf("***Proceso 1: ERROR!!, en shmat***\n");
-                        exit(1);
-                    }
-                    printf("Calcu: Usando la memoria compartida...\n"); 
-                    printf("SE IMPRIMEN VALORES DE OPERANDOS\n");
-                    printf("operando1 %f, operando2 %f \n ", operandos[0], operandos[1] );
-                    ptr->estado = NOLISTO;
-                    ptr->operando_1 = operandos[0];
-                    ptr->operando_2 = operandos[1];
-
-                    sleep(5);
-                    printf("Calcu: Los datos colocados en la memoria compartida son %f, %f\n", ptr->operando_1, ptr->operando_2);
-
-                    ptr->estado = LLENO;
-
-                    printf("Calcu: Por favor, ejecuta al cliente en otra terminal\n");
-                    sleep(5);
-                    execv("./suma", datos_clave);
-                    printf("Error\n");//Solo en caso de que no se haga el cambio de proceso con exec 
-                    
-
-                    
-                    printf("Valor del estado %d\n", ptr->estado);
-                    sleep(5);
-                    while( ptr->estado != RECIBIDO);
-                    
-                    printf("Error\n");//Solo en caso de que no se haga el cambio de proceso con exec 
-                    printf("Calcu: Se a entregado la informacion...\n");
-                    shmdt( (void *)ptr );
-                    shmctl( ID, IPC_RMID, NULL);
-                    printf("Calcu: Liberando memoria compartida\n");
-                    printf("Calcu: Terminado\n"); 
-                    printf("Resultado %f\n", ptr->resultado);   
-
-                
-                    
-                    printf("Se cambio el  proceso por suma\n");
-
-                    
-
-                }
-        break; 
-
-        case '-':
-                pid = fork();
-                if( pid == 0 )
-                {
-                    sleep(5);
-                    execv("./resta", arvg2_resta);
-                    printf("Error\n");//Solo en caso de que no se haga el cambio de proceso con exec 
-                    //break;
-                }
-        break; 
-
-        case 'x':
-                pid = fork();
-                if( pid == 0 )
-                {
-                    sleep(5);
-                    execv("./multi", arvg2_multi);
-                    printf("Error\n");//Solo en caso de que no se haga el cambio de proceso con exec
-                    //break;
-                }
-        break; 
-
-        case '/':
-                pid = fork();
-                if( pid == 0 )
-                {
-                    sleep(5);
-                    execv("./division", arvg2_div);
-                    printf("Error\n");//Solo en caso de que no se haga el cambio de proceso con exec
-                    //break;
-                }
-        break; 
-
-        case '#':
-                for ( int i = 0 ; i < 4 ; i++ )
-                {
-                    pid = fork();
-                    if( pid == 0)
-                    {
-                        sleep(5);
-                        switch (i)
-                        {
-                            //CASO DOND i = 0//
-                            case 0:        
-                                sleep(5);                      
-                                execv("./suma", datos_clave);
-                                printf("Error\n");//Solo en caso de que no se haga el cambio de proceso con exec 
-                                
-                            break ;
-
-                            //CASO DOND i = 1//
-                            case 1:
-                                sleep(5);
-                                execv("./resta", arvg2_resta);
-                                printf("Error\n");//Solo en caso de que no se haga el cambio de proceso con exec 
-                            break ;
-
-                            //CASO DOND i = 2//
-                            case 2:
-                                sleep(5);
-                                execv("./multi", arvg2_multi);
-                                printf("Error\n");//Solo en caso de que no se haga el cambio de proceso con exec
-                            break ;
-
-                            //CASO DOND i = 3//
-                            case 3:
-                                sleep(5);
-                                execv("./division", arvg2_div);
-                                printf("Error\n");//Solo en caso de que no se haga el cambio de proceso con exec
-                            break ;
-                        }// fin switch
-                        break;
-                    }//fin if pid == 0
-                }// fin for para 4 fork's
-        break; //Fin case operador '#'
-
-
-
-
-    }//Fin case
-                
-}//Fin metodo Duplica
-
-*/
-
-/*
-void convierteTipoOperando(float parte_real)
-{
-    int parte_entera = parte_real;
-    int valor ;
-    if( parte_real - parte_entera)
-    {
-        valor = parte_real; 
-        ptr->`
-    }
-    else
-    {
-        valro = parte_entera;
-    }
-    
-}*/
 
 void obtenOperandos(char *ando)
 {
